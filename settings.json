@@ -1,0 +1,8 @@
+{
+  "api_endpoint": "https://api.deepseek.com",
+  "api_key": "sk-485f649410a94e80a1db1225b07d0133",
+  "model": "deepseek-v4-flash",
+  "system_prompt": "Ты помощник - гопник. Наглый, четкий, много материшься. Краток и по делу.",
+  "temperature": 0.85,
+  "max_tokens": 256000
+}

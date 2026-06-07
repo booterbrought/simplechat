@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ГОПчат</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+:root {
+    --bg: #0b0b14;
+    --bg-secondary: #13132a;
+    --bg-tertiary: #1c1c3a;
+    --bg-input: #15152d;
+    --accent: #8b5cf6;
+    --accent-hover: #7c3aed;
+    --accent-subtle: rgba(139, 92, 246, 0.15);
+    --text: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --border: #2a2a4a;
+    --assistant-bg: #1a1a35;
+    --danger: #ef4444;
+    --radius: 16px;
+    --radius-sm: 8px;
+    --transition: 0.2s ease;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+}
+#app {
+    width: 100%;
+    max-width: 880px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+}
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(11, 11, 20, 0.85);
+    backdrop-filter: blur(10px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    flex-shrink: 0;
+}
+header h1 {
+    font-size: 20px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #818cf8, #c084fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.3px;
+}
+#chat-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+}
+#messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    scroll-behavior: smooth;
+}
+#messages::-webkit-scrollbar { width: 5px; }
+#messages::-webkit-scrollbar-track { background: transparent; }
+#messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.message {
+    display: flex;
+    flex-direction: column;
+    max-width: 85%;
+    animation: fadeUp 0.3s ease;
+}
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.message.user { align-self: flex-end; }
+.message.assistant { align-self: flex-start; }
+.message-role {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+    padding: 0 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+}
+.message.user .message-role { text-align: right; color: var(--text-secondary); }
+.message-content {
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    line-height: 1.65;
+    font-size: 14px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+.message.user .message-content {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    border-bottom-right-radius: 4px;
+}
+.message.assistant .message-content {
+    background: var(--assistant-bg);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+}
+.message-content p { margin: 6px 0; }
+.message-content p:first-child { margin-top: 0; }
+.message-content p:last-child { margin-bottom: 0; }
+.message-content code {
+    background: rgba(0,0,0,0.3);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+}
+.message-content pre {
+    background: #0d0d1a;
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+    margin: 10px 0;
+    position: relative;
+}
+.message-content pre code {
+    background: none;
+    padding: 0;
+    font-size: 13px;
+    line-height: 1.55;
+}
+.copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-secondary);
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-family: inherit;
+    transition: all var(--transition);
+}
+.copy-btn:hover { background: rgba(255,255,255,0.15); color: var(--text); }
+.message-content ul, .message-content ol { padding-left: 22px; margin: 6px 0; }
+.message-content li { margin: 3px 0; }
+.message-content a { color: #93c5fd; }
+.message-content strong { font-weight: 600; }
+.message-content table { border-collapse: collapse; width: 100%; margin: 8px 0; }
+.message-content th, .message-content td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 13px;
+}
+.message-content th { background: rgba(0,0,0,0.2); font-weight: 600; }
+.message-content blockquote {
+    border-left: 3px solid var(--accent);
+    padding-left: 14px;
+    color: var(--text-secondary);
+    margin: 8px 0;
+}
+#input-area {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    background: var(--bg);
+    flex-shrink: 0;
+}
+#user-input {
+    flex: 1;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 11px 16px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    resize: none;
+    min-height: 44px;
+    max-height: 200px;
+    outline: none;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    line-height: 1.5;
+}
+#user-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+#user-input::placeholder { color: var(--text-muted); }
+#send-btn {
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition);
+    flex-shrink: 0;
+}
+#send-btn:hover { background: var(--accent-hover); transform: scale(1.04); }
+#send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+#send-btn svg { width: 18px; height: 18px; }
+.typing {
+    display: flex;
+    gap: 4px;
+    padding: 4px 0;
+}
+.typing-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    animation: bounce 1.4s infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.3; }
+    30% { transform: translateY(-5px); opacity: 1; }
+}
+.welcome {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 40px;
+}
+.welcome svg {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 18px;
+    opacity: 0.4;
+    stroke: currentColor;
+}
+.welcome h2 { font-size: 22px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary); }
+.welcome p { font-size: 13px; max-width: 380px; line-height: 1.6; }
+.error-banner {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #f87171;
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    margin: 10px 20px 0;
+    font-size: 13px;
+    animation: fadeUp 0.3s ease;
+}
+@media (max-width: 640px) {
+    #app { max-width: 100%; }
+    .message { max-width: 92%; }
+    header { padding: 12px 16px; }
+    #messages { padding: 14px; gap: 14px; }
+    #input-area { padding: 10px 14px; }
+    .form-row { flex-direction: column; gap: 0; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+    <header>
+        <h1>ГОПчат</h1>
+    </header>
+    <div id="chat-container">
+        <div id="messages">
+            <div class="welcome" id="welcome-screen">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                <h2>Добро пожаловать в ГОПчат</h2>
+                <p>Введите сообщение, чтобы начать общение с ассистентом.</p>
+            </div>
+        </div>
+        <div id="error-area"></div>
+        <div id="input-area">
+            <textarea id="user-input" placeholder="Введите сообщение..." rows="1"></textarea>
+            <button id="send-btn" title="Send">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"/>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+marked.setOptions({ breaks: true, gfm: true });
+
+const messagesEl = document.getElementById('messages');
+const userInput = document.getElementById('user-input');
+const sendBtn = document.getElementById('send-btn');
+const errorArea = document.getElementById('error-area');
+
+let messages = [];
+let isStreaming = false;
+
+userInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+sendBtn.addEventListener('click', sendMessage);
+
+function autoResize() {
+    userInput.style.height = 'auto';
+    userInput.style.height = Math.min(userInput.scrollHeight, 200) + 'px';
+}
+userInput.addEventListener('input', autoResize);
+
+async function sendMessage() {
+    const content = userInput.value.trim();
+    if (!content || isStreaming) return;
+
+    userInput.value = '';
+    autoResize();
+
+    const welcome = document.getElementById('welcome-screen');
+    if (welcome) welcome.remove();
+    clearError();
+
+    messages.push({ role: 'user', content });
+    renderMessages();
+
+    isStreaming = true;
+    sendBtn.disabled = true;
+    userInput.disabled = true;
+
+    const typingEl = addTyping();
+    let assistantMsg = null;
+
+    try {
+        const res = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages }),
+        });
+
+        if (!res.ok) {
+            let errMsg = 'Request failed';
+            try {
+                const err = await res.json();
+                errMsg = err.error || errMsg;
+            } catch(_) {}
+            throw new Error(errMsg);
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buf += decoder.decode(value, { stream: true });
+            const lines = buf.split('\n');
+            buf = lines.pop() || '';
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed || !trimmed.startsWith('data:')) continue;
+                const jsonStr = trimmed.slice(5).trim();
+                if (jsonStr === '[DONE]') continue;
+                try {
+                    const json = JSON.parse(jsonStr);
+                    const delta = json.choices?.[0]?.delta?.content;
+                    if (delta) {
+                        if (!assistantMsg) {
+                            removeTyping(typingEl);
+                            assistantMsg = { role: 'assistant', content: delta };
+                            messages.push(assistantMsg);
+                            renderMessages();
+                        } else {
+                            assistantMsg.content += delta;
+                            updateLastMessage(assistantMsg.content);
+                        }
+                    }
+                } catch(_) {}
+            }
+        }
+
+        if (!assistantMsg) {
+            throw new Error('Пустой ответ от API');
+        }
+    } catch(err) {
+        removeTyping(typingEl);
+        showError(err.message);
+        renderMessages();
+    } finally {
+        isStreaming = false;
+        sendBtn.disabled = false;
+        userInput.disabled = false;
+        userInput.focus();
+    }
+}
+
+function addTyping() {
+    const el = document.createElement('div');
+    el.className = 'message assistant typing-msg';
+    el.innerHTML = '<div class="message-content"><div class="typing"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>';
+    messagesEl.appendChild(el);
+    scrollDown();
+    return el;
+}
+
+function removeTyping(el) {
+    if (el && el.parentNode) el.remove();
+}
+
+function updateLastMessage(content) {
+    const items = messagesEl.querySelectorAll('.message.assistant:not(.typing-msg)');
+    const last = items[items.length - 1];
+    if (!last) { renderMessages(); return; }
+    last.querySelector('.message-content').innerHTML = marked.parse(content);
+    addCopyButtons(last.querySelector('.message-content'));
+    scrollDown();
+}
+
+function renderMessages() {
+    messagesEl.innerHTML = '';
+    if (messages.length === 0) {
+        messagesEl.innerHTML = `<div class="welcome" id="welcome-screen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><h2>Добро пожаловать в ГОПчат</h2><p>Введите сообщение, чтобы начать общение с ассистентом.</p></div>`;
+        return;
+    }
+    messages.forEach((msg, i) => {
+        const div = document.createElement('div');
+        div.className = 'message ' + msg.role;
+        div.innerHTML = '<div class="message-role">' + (msg.role === 'user' ? 'Вы' : 'Ассистент') + '</div><div class="message-content">' + marked.parse(msg.content) + '</div>';
+        if (msg.role === 'assistant') addCopyButtons(div.querySelector('.message-content'));
+        messagesEl.appendChild(div);
+    });
+    scrollDown();
+}
+
+function addCopyButtons(container) {
+    container.querySelectorAll('pre').forEach(pre => {
+        if (pre.querySelector('.copy-btn')) return;
+        const btn = document.createElement('button');
+        btn.className = 'copy-btn';
+        btn.textContent = 'Copy';
+        btn.addEventListener('click', () => {
+            const code = pre.querySelector('code')?.textContent || pre.textContent || '';
+            navigator.clipboard.writeText(code).then(() => {
+                btn.textContent = 'Copied!';
+                setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+            }).catch(() => { btn.textContent = 'Error'; });
+        });
+        pre.style.position = 'relative';
+        pre.appendChild(btn);
+    });
+}
+
+function scrollDown() { messagesEl.scrollTop = messagesEl.scrollHeight; }
+
+function showError(msg) {
+    errorArea.innerHTML = '<div class="error-banner">' + escapeHtml(msg) + '</div>';
+    setTimeout(clearError, 10000);
+}
+
+function clearError() { errorArea.innerHTML = ''; }
+
+function escapeHtml(text) {
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+}
+</script>
+</body>
+</html>
